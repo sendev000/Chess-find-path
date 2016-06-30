@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Chess test</title>
+<script>
+function calcMovement(){
+	// console.log("testing");
+	var	rook_position = [2,3];
+	var chess_board = [];
+	var board_size = 8;
+	var i,j;
+	for (i=1;i<=board_size;i++){
+		var asc = convertIntegerToAscii(i);
+		chess_board[asc] = [];
+		for (j=1;j<=board_size;j++)
+		{
+			chess_board[asc][j] = 0;		// For empty board, set 0
+		}
+	}
+	// Let's imagine
+	// King: 1, Queen: 2, Rook: 3, Bishop: 4, Knight: 5, Pawn: 6	(for black team)
+	// King: 11, Queen: 12, Rook: 13, Bishop: 14, Knight: 15, Pawn: 16	(for white team)
+	var black_king_position = ['a', 2];
+	var white_rook_position = ['h', 7];
+
+	// Black team
+
+	chess_board['a'][3] = 1;	chess_board['b'][6] = 3;
+	chess_board['d'][4] = 4;	chess_board['e'][1] = 5;	chess_board['h'][3] = 6;
+
+	// White team
+	chess_board['c'][5] = 11;	chess_board['f'][4] = 15;
+
+	// Black queen and white rook
+	chess_board[black_king_position[0]][black_king_position[1]] = 2;
+	chess_board[white_rook_position[0]][white_rook_position[1]] = 13;
+
+
+	var ret = calcMinimumMovement(chess_board, white_rook_position, black_king_position, 2);
+	if (ret == 0)
+		alert("We can't find path");
+	else
+		alert("The minimum amount of moves is(are): " + ret);
+	console.log(ret);
+}
+function convertIntegerToAscii(num){
+	var chr = String.fromCharCode(96 + num);
+	return chr;
+}
+function convertColposToNumber(char){
+	return parseInt(char.charCodeAt(0) - 'a'.charCodeAt(0)) + 1;
+}
+function isMovingGood(x, y)
+{
+	var board_size = 8;
+	if (x>=1 && x<=board_size && y>=1 && y<=board_size)
+		return true;
+	return false;
+}
+function calcMinimumMovement(board, rook_pos, king_pos, king_num )
+{
+	var board_size = 8;
+	var g = new Graph();
+	var minRes = 0;
+
+	board[rook_pos[0]][rook_pos[1]] = 0;
+	board[king_pos[0]][king_pos[1]] = 0;
+
+	for (i=1;i<=board_size;i++)
+		for (j=1;j<=board_size;j++)
+		{
+			var arr = [];
+			if (board[convertIntegerToAscii(i)][j] !=0) continue;
+			for (k=1;k<board_size;k++)
+			{
+				if (isMovingGood(i+k, j))
+				{
+					if ((i+k)<=board_size && board[convertIntegerToAscii(i+k)][j] == 0)
+						arr[convertIntegerToAscii(i+k) + j] = 1;
+					else
+						break;
+				}
+			}
+			for (k=1;k<board_size;k++)
+			{
+				if (isMovingGood(i-k, j))
+				{
+					if (i-k>0 && board[convertIntegerToAscii(i-k)][j] == 0)
+						arr[convertIntegerToAscii(i-k) + j] = 1;
+					else
+						break;
+				}
+			}
+			for (k=1;k<board_size;k++)
+			{
+				if ((j+k)<=board_size && isMovingGood(i, j+k))
+				{
+					if (board[convertIntegerToAscii(i)][j+k] == 0)
+						arr[convertIntegerToAscii(i) + (j+k)] = 1;
+					else
+						break;
+				}
+			}
+			for (k=1;k<board_size;k++)
+			{
+				if ((j-k)>0 && isMovingGood(i, j-k))
+				{
+					if (board[convertIntegerToAscii(i)][j-k] == 0)
+						arr[convertIntegerToAscii(i) + (j-k)] = 1;
+					else
+						break;
+				}
+			}
+			g.addVertex(convertIntegerToAscii(i) + (j), arr);
+		}
+	minRes = g.shortestPath(rook_pos[0]+rook_pos[1], king_pos[0]+king_pos[1]).length;
+	return minRes;
+}
+
+// calc minimum amount of movement
+function priorityQueue () {
+  this._nodes = [];
+
+  this.enqueue = function (priority, key) {
+    this._nodes.push({key: key, priority: priority });
+    this.sort();
+  }
+  this.dequeue = function () {
+    return this._nodes.shift().key;
+  }
+  this.sort = function () {
+    this._nodes.sort(function (a, b) {
+      return a.priority - b.priority;
+    });
+  }
+  this.isEmpty = function () {
+    return !this._nodes.length;
+  }
+}
+
+/**
+ * Pathfinding starts here
+ */
+function Graph(){
+  var INFINITY = 1/0;
+  this.vertices = {};
+
+  this.addVertex = function(name, edges){
+    this.vertices[name] = edges;
+  }
+
+  this.shortestPath = function (start, finish) {
+    var nodes = new priorityQueue(),
+        distances = {},
+        previous = {},
+        path = [],
+        smallest, vertex, neighbor, alt;
+
+    for(vertex in this.vertices) {
+      if(vertex === start) {
+        distances[vertex] = 0;
+        nodes.enqueue(0, vertex);
+      }
+      else {
+        distances[vertex] = INFINITY;
+        nodes.enqueue(INFINITY, vertex);
+      }
+
+      previous[vertex] = null;
+    }
+
+    while(!nodes.isEmpty()) {
+      smallest = nodes.dequeue();
+
+      if(smallest === finish) {
+        path;
+
+        while(previous[smallest]) {
+          path.push(smallest);
+          smallest = previous[smallest];
+        }
+
+        break;
+      }
+
+      if(!smallest || distances[smallest] === INFINITY){
+        continue;
+      }
+
+      for(neighbor in this.vertices[smallest]) {
+        alt = distances[smallest] + this.vertices[smallest][neighbor];
+
+        if(alt < distances[neighbor]) {
+          distances[neighbor] = alt;
+          previous[neighbor] = smallest;
+
+          nodes.enqueue(alt, neighbor);
+        }
+      }
+    }
+
+    return path;
+  }
+}
+</script>
+</head>
+<body>
+	Calculate the minimum amount of moves for the white rook to capture black queen on a chess board<br/>
+	<input type="button" onclick="calcMovement()" value="Calc"/>
+</body>
+</html>
